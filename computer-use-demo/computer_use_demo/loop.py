@@ -29,6 +29,7 @@ from anthropic.types.beta import (
     BetaToolUseBlockParam,
 )
 
+from .token_tracker import TokenTracker, TokenUsage
 from .tools import (
     TOOL_GROUPS_BY_VERSION,
     ToolCollection,
@@ -37,6 +38,9 @@ from .tools import (
 )
 
 PROMPT_CACHING_BETA_FLAG = "prompt-caching-2024-07-31"
+
+# Initialize token tracker
+token_tracker = TokenTracker()
 
 
 class APIProvider(StrEnum):
@@ -157,6 +161,20 @@ async def sampling_loop(
         )
 
         response = raw_response.parse()
+        
+        # Track token usage
+        usage = response.usage
+        # Create a token usage record
+        token_usage = TokenUsage(
+            timestamp=datetime.now().isoformat(),
+            model=model,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            cached_input_tokens=getattr(usage, "cached_input_tokens", 0),
+            thinking_tokens=getattr(usage, "thinking_tokens", 0),
+        )
+        # Add to token tracker
+        token_tracker.add_usage(token_usage)
 
         response_params = _response_to_params(response)
         messages.append(

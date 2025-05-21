@@ -181,3 +181,33 @@ docker run \
 ```
 
 The docker run command above mounts the repo inside the docker image, such that you can edit files from the host. Streamlit is already configured with auto reloading.
+
+## Token Usage Tracking
+
+The demo now includes token usage tracking that logs all API calls, token counts, and estimated costs to a JSON file. By default, this file is stored at:
+
+```
+~/.anthropic/token_usage.json
+```
+
+You can customize the location by setting the `TOKEN_LOG_PATH` environment variable:
+
+```bash
+docker run \
+    -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+    -e TOKEN_LOG_PATH=/path/to/your/token_log.json \
+    -v $HOME/.anthropic:/home/computeruse/.anthropic \
+    -p 5900:5900 \
+    -p 8501:8501 \
+    -p 6080:6080 \
+    -p 8080:8080 \
+    -it ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```
+
+The token usage file is continuously updated after each API call and includes:
+- Total input and output tokens
+- Cached input tokens when using prompt caching
+- Thinking tokens when using the thinking feature
+- Estimated cost based on model pricing
+- Session duration (start time, current time, and duration in HH:MM:SS format)
+- Comprehensive session statistics
