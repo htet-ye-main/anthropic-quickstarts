@@ -67,43 +67,42 @@ class TokenTracker:
     
     def __init__(self, log_path: Optional[str] = None):
         self.log_path = Path(log_path) if log_path else Path(TOKEN_LOG_PATH)
-        self.usage_records: List[TokenUsage] = []
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_start_time = datetime.now()
-        self._load_existing_records()
-    
-    def _load_existing_records(self):
-        """Load existing records from the log file if it exists."""
-        if self.log_path.exists():
-            try:
-                with open(self.log_path, "r") as f:
-                    data = json.load(f)
-                    # Convert dict records to TokenUsage objects
-                    for record in data.get("records", []):
-                        self.usage_records.append(TokenUsage(**record))
-            except (json.JSONDecodeError, FileNotFoundError):
-                # Start with empty records if file is invalid or missing
-                self.usage_records = []
+        
+        # Track only aggregates
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.total_cached_input_tokens = 0
+        self.total_thinking_tokens = 0
+        self.total_cost_usd = 0.0
+        self.total_requests = 0
         
         # Create directory if it doesn't exist
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
     
     def add_usage(self, usage: TokenUsage):
-        """Add a new token usage record and update the log file."""
+        """Add usage to aggregated totals and update the log file."""
         usage.calculate_cost()
-        self.usage_records.append(usage)
+        
+        # Update aggregates directly
+        self.total_input_tokens += usage.input_tokens
+        self.total_output_tokens += usage.output_tokens
+        self.total_cached_input_tokens += usage.cached_input_tokens
+        self.total_thinking_tokens += usage.thinking_tokens
+        self.total_cost_usd += usage.cost_usd
+        self.total_requests += 1
+        
         self._write_to_file()
         
     def _write_to_file(self):
-        """Write all records to the log file."""
-        # Calculate session totals
+        """Write aggregated stats to the log file."""
         session_data = self.get_session_stats()
         
         data = {
             "session_id": self.session_id,
             "last_updated": datetime.now().isoformat(),
-            "session_stats": session_data,
-            "records": [asdict(record) for record in self.usage_records]
+            "session_stats": session_data
         }
         
         with open(self.log_path, "w") as f:
@@ -111,12 +110,6 @@ class TokenTracker:
     
     def get_session_stats(self) -> Dict:
         """Get statistics for the current session."""
-        total_input = sum(rec.input_tokens for rec in self.usage_records)
-        total_output = sum(rec.output_tokens for rec in self.usage_records)
-        total_cached = sum(rec.cached_input_tokens for rec in self.usage_records)
-        total_thinking = sum(rec.thinking_tokens for rec in self.usage_records)
-        total_cost = sum(rec.cost_usd for rec in self.usage_records)
-        
         # Calculate session duration
         now = datetime.now()
         session_duration = now - self.session_start_time
@@ -128,12 +121,12 @@ class TokenTracker:
         formatted_duration = f"{hours:02}:{minutes:02}:{seconds:02}"
         
         return {
-            "total_input_tokens": total_input,
-            "total_output_tokens": total_output,
-            "total_cached_input_tokens": total_cached,
-            "total_thinking_tokens": total_thinking,
-            "total_requests": len(self.usage_records),
-            "total_cost_usd": total_cost,
+            "total_input_tokens": self.total_input_tokens,
+            "total_output_tokens": self.total_output_tokens,
+            "total_cached_input_tokens": self.total_cached_input_tokens,
+            "total_thinking_tokens": self.total_thinking_tokens,
+            "total_requests": self.total_requests,
+            "total_cost_usd": self.total_cost_usd,
             "session_start_time": self.session_start_time.isoformat(),
             "current_time": now.isoformat(),
             "session_duration_seconds": duration_seconds,
