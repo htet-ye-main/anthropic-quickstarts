@@ -24,6 +24,13 @@ PRICING = {
     # Claude 3.7 Sonnet
     "claude-3-7-sonnet-20250219": {"input": 5.0, "output": 25.0, "cached_input": 0.5},
     
+    # Claude 4 Sonnet
+    "claude-sonnet-4-20250514": {"input": 15.0, "output": 75.0, "cached_input": 1.5},
+    
+    # Claude 4 Opus
+    "claude-opus-4-20250514": {"input": 30.0, "output": 150.0, "cached_input": 3.0},
+    "claude-opus-4@20250508": {"input": 30.0, "output": 150.0, "cached_input": 3.0},
+    
     # Default fallback pricing if model not found
     "default": {"input": 5.0, "output": 25.0, "cached_input": 0.5}
 }
